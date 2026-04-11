@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const BASE_URL = import.meta.env.VITE_API_URL
+const BASE_URL = import.meta.env.VITE_API_URL || 'https://credoai-backend.onrender.com/'
 const STORAGE_KEY = 'loan-ai-auth'
 
 const api = axios.create({
