@@ -20,4 +20,3 @@ pyotp==2.9.0
 # cryptography==42.0.7
 razorpay>=1.4.1  # optional: for Razorpay UPI gateway
 pymongo>=4.6.1
-axois
