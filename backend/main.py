@@ -1,5 +1,4 @@
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
@@ -9,6 +8,22 @@ from config.settings import settings
 from routes import auth, loan, admin, chatbot
 from routes.payment import router as payment_router
 from routes.documents import router as documents_router
+from fastapi.middleware.cors import CORSMiddleware
+
+app = FastAPI()   
+
+origins = [
+    "http://localhost:5173",
+    "https://credo-ai-git-main-chinmayshukla831-9912s-projects.vercel.app",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,   # 👈 IMPORTANT
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
