@@ -29,6 +29,8 @@ class Settings(BaseSettings):
     SMTP_PORT:           int = 587
     SMTP_USER:           str = ""
     SMTP_PASS:           str = ""
+
+    RESEND_API_KEY:      str = ""
     OTP_EXPIRY_MINUTES:  int = 10
 
     FRONTEND_URL: str = "http://localhost:5173"

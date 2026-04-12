@@ -10,9 +10,10 @@ from utils.jwt_utils import create_access_token
 from config.settings import settings
 
 import asyncio
-import aiosmtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+# import aiosmtplib
+# from email.mime.text import MIMEText
+# from email.mime.multipart import MIMEMultipart
+import requests
 
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
@@ -25,27 +26,51 @@ def verify_password(plain: str, hashed: str) -> bool:
     return pwd_context.verify(plain, hashed)
 
 
-async def send_otp_email(email: str, otp: str) -> bool:
+# async def send_otp_email(email: str, otp: str) -> bool:
+#     try:
+#         msg = MIMEMultipart("alternative")
+#         msg["Subject"] = "Your CredoAI OTP Verification Code"
+#         msg["From"] = settings.SMTP_USER
+#         msg["To"] = email
+
+#         text = f"Your OTP code is: {otp}"
+#         msg.attach(MIMEText(text, "plain"))
+
+#         await aiosmtplib.send(
+#             msg,
+#             hostname=settings.SMTP_HOST,
+#             port=settings.SMTP_PORT,
+#             username=settings.SMTP_USER,
+#             password=settings.SMTP_PASS,
+#             start_tls=True,
+#         )
+#         return True
+#     except Exception as e:          # for testing purposes, catch all exceptions and print the error. In production, consider logging this instead.
+#         print("Email sending error:", e)  
+#         return False
+
+def send_otp_email(email: str, otp: str) -> bool:
     try:
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = "Your CredoAI OTP Verification Code"
-        msg["From"] = settings.SMTP_USER
-        msg["To"] = email
-
-        text = f"Your OTP code is: {otp}"
-        msg.attach(MIMEText(text, "plain"))
-
-        await aiosmtplib.send(
-            msg,
-            hostname=settings.SMTP_HOST,
-            port=settings.SMTP_PORT,
-            username=settings.SMTP_USER,
-            password=settings.SMTP_PASS,
-            start_tls=True,
+        response = requests.post(
+            "https://api.resend.com/emails",
+            headers={
+                "Authorization": f"Bearer {settings.RESEND_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "from": "onboarding@resend.dev",
+                "to": [email],
+                "subject": "Your CredoAI OTP",
+                "html": f"<h2>Your OTP is: {otp}</h2>",
+            },
         )
-        return True
-    except Exception as e:          # for testing purposes, catch all exceptions and print the error. In production, consider logging this instead.
-        print("Email sending error:", e)  
+
+        print("Resend response:", response.status_code, response.text)
+
+        return response.status_code in [200, 202]
+
+    except Exception as e:
+        print("Resend error:", e)
         return False
 
 
@@ -73,7 +98,7 @@ class AuthService:
 
         result = users_collection.insert_one(user_data)
 
-        email_sent = await send_otp_email(email, otp)           # For testing purposes, we will print the OTP to the console instead of sending an email. In production, this should be removed and the email sending functionality should be used.
+        email_sent = send_otp_email(email, otp)           # For testing purposes, we will print the OTP to the console instead of sending an email. In production, this should be removed and the email sending functionality should be used.
         if not email_sent:
             raise HTTPException(status_code=500, detail="Failed to send OTP email")
 
@@ -156,7 +181,7 @@ class AuthService:
             }}
         )
 
-        await send_otp_email(email, otp)
+        send_otp_email(email, otp)
 
         return {"message": "OTP sent"}
 
@@ -200,7 +225,7 @@ class AuthService:
             }}
         )
 
-        await send_otp_email(email, otp)
+        send_otp_email(email, otp)
 
         return {"message": "OTP resent"}
 
