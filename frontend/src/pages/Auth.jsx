@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import useAuthStore from '../store/useAuthStore'
 import authService from '../services/authService'
+import emailService from '../services/emailService'
 import Input from '../components/ui/Input'
 import Button from '../components/ui/Button'
 import { Divider } from '../components/ui/index.jsx'
@@ -90,13 +91,21 @@ export default function Auth() {
 
       console.log("✅ Registration successful:", response.data);
 
-      setPendingEmail(form.email);
-      setOtpFlow('register');
+      const { email, otp, user_id } = response.data;
+
+      // Send OTP email via frontend
+      setLoading(true);
+      const emailResult = await emailService.sendOTP(email, otp, form.name);
       
-      // Force mode update
-      setTimeout(() => {
+      if (emailResult.success) {
+        console.log("✅ OTP email sent successfully");
+        setPendingEmail(email);
+        setOtpFlow('register');
+        setOtpDigits(otp.split(""));
         setMode('otp');
-      }, 100);
+      } else {
+        setError(`OTP generated but email failed: ${emailResult.message}`);
+      }
 
     } catch (e) {
       console.error("❌ Registration failed:", e);
@@ -140,10 +149,21 @@ export default function Auth() {
     if (!form.email) return setError('Enter your email')
     setLoading(true); setError('')
     try {
-      await authService.forgotPassword(form.email)
-      setPendingEmail(form.email)
-      setOtpFlow('forgot')
-      setMode('otp')
+      const response = await authService.forgotPassword(form.email)
+      const { email, otp } = response.data
+      
+      // Send OTP email via frontend
+      const emailResult = await emailService.sendOTP(email, otp, 'User')
+      
+      if (emailResult.success) {
+        console.log("✅ Forgot password OTP email sent")
+        setPendingEmail(email)
+        setOtpFlow('forgot')
+        setOtpDigits(otp.split(""))
+        setMode('otp')
+      } else {
+        setError(`OTP generated but email failed: ${emailResult.message}`)
+      }
     } catch (e) {
       setError(e.response?.data?.detail || 'Error')
     } finally { setLoading(false) }
@@ -181,6 +201,30 @@ export default function Auth() {
   const handleOtpKey = (i, e) => {
     if (e.key === 'Backspace' && !otpDigits[i] && i > 0)
       document.getElementById(`otp-${i - 1}`)?.focus()
+  }
+
+  const handleResendOTP = async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const response = await authService.resendOtp(pendingEmail)
+      const { otp } = response.data
+      
+      // Send OTP email via frontend
+      const emailResult = await emailService.sendOTP(pendingEmail, otp, 'User')
+      
+      if (emailResult.success) {
+        console.log("✅ Resent OTP email successfully")
+        setOtpDigits(otp.split(""))
+        setError('') 
+      } else {
+        setError(`OTP regenerated but email failed: ${emailResult.message}`)
+      }
+    } catch (e) {
+      setError(e.response?.data?.detail || 'Failed to resend OTP')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -253,6 +297,9 @@ export default function Auth() {
               <Button variant="navy" fullWidth loading={loading} onClick={handleOTP} className="mb-3">
                 Verify OTP
               </Button>
+              <button onClick={handleResendOTP} disabled={loading} className="text-sm text-slate-500 hover:text-blue-600 transition-colors w-full text-center mb-3">
+                Resend OTP
+              </button>
               <button onClick={() => otpFlow === 'register' ? setMode('register') : setMode('forgot')} className="text-sm text-slate-500 hover:text-blue-600 transition-colors w-full text-center">
                 ← Back
               </button>

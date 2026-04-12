@@ -10,10 +10,6 @@ from utils.jwt_utils import create_access_token
 from config.settings import settings
 
 import asyncio
-import aiosmtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-import requests
 
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
@@ -24,47 +20,6 @@ def hash_password(password: str) -> str:
 
 def verify_password(plain: str, hashed: str) -> bool:
     return pwd_context.verify(plain, hashed)
-
-
-async def send_otp_email(email: str, otp: str) -> bool:
-    """Send OTP via Resend API (works on Render)"""
-    try:
-        response = requests.post(
-            "https://api.resend.com/emails",
-            headers={
-                "Authorization": f"Bearer {settings.RESEND_API_KEY}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "from": "onboarding@resend.dev",
-                "to": [email],
-                "subject": "Your CredoAI OTP Verification Code",
-                "html": f"""
-                <html>
-                    <body style="font-family: Arial, sans-serif;">
-                        <h2 style="color: #0F172A;">Your CredoAI OTP</h2>
-                        <p>Your verification code is: <strong style="font-size: 24px; color: #3B82F6;">{otp}</strong></p>
-                        <p>This code will expire in {settings.OTP_EXPIRY_MINUTES} minutes.</p>
-                        <p style="color: #666; font-size: 12px;">If you didn't request this, please ignore this email.</p>
-                    </body>
-                </html>
-                """,
-            },
-            timeout=10
-        )
-
-        if response.status_code in [200, 202]:
-            print(f"✅ OTP email sent successfully to {email} via Resend")
-            return True
-        else:
-            print(f"❌ Resend API error: {response.status_code} - {response.text}")
-            return False
-
-    except Exception as e:
-        print(f"❌ Error sending OTP to {email}: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return False
 
 
 class AuthService:
@@ -92,13 +47,11 @@ class AuthService:
 
         result = users_collection.insert_one(user_data)
         
-        # Send OTP email asynchronously (don't wait for it)
-        # This prevents timeout on the registration endpoint
-        asyncio.create_task(send_otp_email(email, otp))
-
         return {
-            "message": "Registration successful. OTP has been sent to your email.",
-            "user_id": str(result.inserted_id)
+            "message": "Registration successful. Enter the OTP to verify your email.",
+            "user_id": str(result.inserted_id),
+            "email": email,
+            "otp": otp
         }
 
 
@@ -166,7 +119,11 @@ class AuthService:
         user = users_collection.find_one({"email": email})
 
         if not user:
-            return {"message": "If that email exists, an OTP has been sent"}
+            return {
+                "message": "If that email exists, an OTP has been sent",
+                "email": email,
+                "otp": None
+            }
 
         otp = generate_otp()
 
@@ -178,10 +135,11 @@ class AuthService:
             }}
         )
 
-        # Send email asynchronously (don't wait)
-        asyncio.create_task(send_otp_email(email, otp))
-
-        return {"message": "OTP sent to your email"}
+        return {
+            "message": "OTP generated. Check your email.",
+            "email": email,
+            "otp": otp
+        }
 
 
     def reset_password(self, email: str, otp: str, new_password: str):
@@ -223,10 +181,11 @@ class AuthService:
             }}
         )
 
-        # Send email asynchronously (don't wait)
-        asyncio.create_task(send_otp_email(email, otp))
-
-        return {"message": "OTP resent to your email"}
+        return {
+            "message": "New OTP generated",
+            "email": email,
+            "otp": otp
+        }
 
 
 def _serialize(user):
