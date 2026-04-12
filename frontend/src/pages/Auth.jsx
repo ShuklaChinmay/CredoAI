@@ -277,8 +277,11 @@ export default function Auth() {
           {mode === 'otp' && (
             <>
               <h3 className="font-head text-2xl font-bold text-slate-900 mb-1">Verify your email</h3>
-              <p className="text-sm text-slate-500 mb-6">
+              <p className="text-sm text-slate-500 mb-2">
                 Enter the 6-digit OTP sent to <strong>{pendingEmail}</strong>
+              </p>
+              <p className="text-sm text-red-600 mb-6 font-semibold">
+                Note: Check your mail Inbox and Spam
               </p>
               <div className="flex gap-2.5 justify-center mb-6">
                 {otpDigits.map((d, i) => (
