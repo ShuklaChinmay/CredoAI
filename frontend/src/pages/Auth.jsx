@@ -305,9 +305,17 @@ export default function Auth() {
               <button onClick={handleResendOTP} disabled={loading} className="text-sm text-slate-500 hover:text-blue-600 transition-colors w-full text-center mb-3">
                 Resend OTP
               </button>
-              <button onClick={() => otpFlow === 'register' ? setMode('register') : setMode('forgot')} className="text-sm text-slate-500 hover:text-blue-600 transition-colors w-full text-center">
+              <button onClick={() => otpFlow === 'register' ? setMode('register') : setMode('forgot')} className="text-sm text-slate-500 hover:text-blue-600 transition-colors w-full text-center mb-4">
                 ← Back
               </button>
+              <div className="border-t border-slate-100 pt-4">
+                <p className="text-xs text-slate-500 text-center">
+                  Didn't receive OTP? Email{' '}
+                  <a href="mailto:credoai.org@gmail.com" className="text-blue-600 font-medium hover:underline">
+                    credoai.org@gmail.com
+                  </a>
+                </p>
+              </div>
             </>
           )}
 
@@ -339,9 +347,17 @@ export default function Auth() {
               <Button variant="navy" fullWidth loading={loading} onClick={handleResetPassword} className="mb-3">
                 Reset Password
               </Button>
-              <button onClick={() => setMode('login')} className="text-sm text-slate-500 hover:text-blue-600 w-full text-center">
+              <button onClick={() => setMode('login')} className="text-sm text-slate-500 hover:text-blue-600 w-full text-center mb-4">
                 ← Back to login
               </button>
+              <div className="border-t border-slate-100 pt-4">
+                <p className="text-xs text-slate-500 text-center">
+                  Need assistance? Contact us at{' '}
+                  <a href="mailto:credoai.org@gmail.com" className="text-blue-600 font-medium hover:underline">
+                    credoai.org@gmail.com
+                  </a>
+                </p>
+              </div>
             </>
           )}
 
@@ -352,7 +368,15 @@ export default function Auth() {
               <Input label="Email" type="email" placeholder="your@example.com" value={form.email} onChange={set('email')} className="mb-4" autoComplete="username" />
               {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
               <Button variant="navy" fullWidth loading={loading} onClick={handleForgot} className="mb-3">Send OTP</Button>
-              <button onClick={() => setMode('login')} className="text-sm text-slate-500 hover:text-blue-600 w-full text-center">← Back to login</button>
+              <button onClick={() => setMode('login')} className="text-sm text-slate-500 hover:text-blue-600 w-full text-center mb-4">← Back to login</button>
+              <div className="border-t border-slate-100 pt-4">
+                <p className="text-xs text-slate-500 text-center">
+                  Need help? Contact our support team at{' '}
+                  <a href="mailto:credoai.org@gmail.com" className="text-blue-600 font-medium hover:underline">
+                    credoai.org@gmail.com
+                  </a>
+                </p>
+              </div>
             </>
           )}
 
@@ -380,6 +404,14 @@ export default function Auth() {
                   Register
                 </button>
               </p>
+              <div className="border-t border-slate-100 mt-4 pt-4">
+                <p className="text-xs text-slate-500 text-center">
+                  Having trouble? Contact support at{' '}
+                  <a href="mailto:credoai.org@gmail.com" className="text-blue-600 font-medium hover:underline">
+                    credoai.org@gmail.com
+                  </a>
+                </p>
+              </div>
             </>
           )}
 
@@ -403,6 +435,14 @@ export default function Auth() {
                   Sign In
                 </button>
               </p>
+              <div className="border-t border-slate-100 mt-4 pt-4">
+                <p className="text-xs text-slate-500 text-center">
+                  Questions? Reach out to us at{' '}
+                  <a href="mailto:credoai.org@gmail.com" className="text-blue-600 font-medium hover:underline">
+                    credoai.org@gmail.com
+                  </a>
+                </p>
+              </div>
             </>
           )}
         </div>
