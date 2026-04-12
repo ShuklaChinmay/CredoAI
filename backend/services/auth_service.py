@@ -27,44 +27,41 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 
 async def send_otp_email(email: str, otp: str) -> bool:
-    """Send OTP via SMTP (Gmail)"""
+    """Send OTP via Resend API (works on Render)"""
     try:
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = "Your CredoAI OTP Verification Code"
-        msg["From"] = settings.SMTP_USER
-        msg["To"] = email
+        response = requests.post(
+            "https://api.resend.com/emails",
+            headers={
+                "Authorization": f"Bearer {settings.RESEND_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "from": "onboarding@resend.dev",
+                "to": [email],
+                "subject": "Your CredoAI OTP Verification Code",
+                "html": f"""
+                <html>
+                    <body style="font-family: Arial, sans-serif;">
+                        <h2 style="color: #0F172A;">Your CredoAI OTP</h2>
+                        <p>Your verification code is: <strong style="font-size: 24px; color: #3B82F6;">{otp}</strong></p>
+                        <p>This code will expire in {settings.OTP_EXPIRY_MINUTES} minutes.</p>
+                        <p style="color: #666; font-size: 12px;">If you didn't request this, please ignore this email.</p>
+                    </body>
+                </html>
+                """,
+            },
+            timeout=10
+        )
 
-        # Create HTML and plain text versions
-        text = f"Your OTP code is: {otp}\n\nThis code will expire in {settings.OTP_EXPIRY_MINUTES} minutes."
-        html = f"""
-        <html>
-            <head></head>
-            <body>
-                <h2>Your CredoAI OTP</h2>
-                <p>Your verification code is: <strong>{otp}</strong></p>
-                <p>This code will expire in {settings.OTP_EXPIRY_MINUTES} minutes.</p>
-                <p>If you didn't request this, please ignore this email.</p>
-            </body>
-        </html>
-        """
-        
-        msg.attach(MIMEText(text, "plain"))
-        msg.attach(MIMEText(html, "html"))
+        if response.status_code in [200, 202]:
+            print(f"✅ OTP email sent successfully to {email} via Resend")
+            return True
+        else:
+            print(f"❌ Resend API error: {response.status_code} - {response.text}")
+            return False
 
-        # Port 587 = SMTP with STARTTLS
-        async with aiosmtplib.SMTP(hostname=settings.SMTP_HOST, port=settings.SMTP_PORT, timeout=10) as smtp:
-            print(f"🔌 Connecting to {settings.SMTP_HOST}:{settings.SMTP_PORT}")
-            await smtp.starttls()
-            print(f"🔒 TLS secured")
-            await smtp.login(settings.SMTP_USER, settings.SMTP_PASS)
-            print(f"✅ Authenticated as {settings.SMTP_USER}")
-            await smtp.send_message(msg)
-        
-        print(f"✅ OTP email sent successfully to {email}")
-        return True
-        
     except Exception as e:
-        print(f"❌ SMTP Error sending OTP to {email}: {str(e)}")
+        print(f"❌ Error sending OTP to {email}: {str(e)}")
         import traceback
         traceback.print_exc()
         return False
