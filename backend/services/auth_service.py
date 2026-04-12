@@ -51,8 +51,13 @@ async def send_otp_email(email: str, otp: str) -> bool:
         msg.attach(MIMEText(text, "plain"))
         msg.attach(MIMEText(html, "html"))
 
-        async with aiosmtplib.SMTP(hostname=settings.SMTP_HOST, port=settings.SMTP_PORT, start_tls=True) as smtp:
+        # Port 587 = SMTP with STARTTLS
+        async with aiosmtplib.SMTP(hostname=settings.SMTP_HOST, port=settings.SMTP_PORT, timeout=10) as smtp:
+            print(f"🔌 Connecting to {settings.SMTP_HOST}:{settings.SMTP_PORT}")
+            await smtp.starttls()
+            print(f"🔒 TLS secured")
             await smtp.login(settings.SMTP_USER, settings.SMTP_PASS)
+            print(f"✅ Authenticated as {settings.SMTP_USER}")
             await smtp.send_message(msg)
         
         print(f"✅ OTP email sent successfully to {email}")
@@ -73,7 +78,8 @@ class AuthService:
             raise HTTPException(status_code=400, detail="Email already registered")
 
         otp = generate_otp()
-        # print("OTP:", otp)          # For testing purposes, print the OTP to the console. Remove this in production.
+        print(f"📝 Registering user: {email}")
+        print(f"🔐 Generated OTP: {otp}")
         expires = datetime.utcnow() + timedelta(minutes=settings.OTP_EXPIRY_MINUTES)
 
         user_data = {
@@ -89,10 +95,9 @@ class AuthService:
 
         result = users_collection.insert_one(user_data)
         
-        # Send OTP email
-        email_sent = await send_otp_email(email, otp)
-        if not email_sent:
-            print(f"⚠️  Warning: Failed to send OTP email to {email}, but user created")
+        # Send OTP email asynchronously (don't wait for it)
+        # This prevents timeout on the registration endpoint
+        asyncio.create_task(send_otp_email(email, otp))
 
         return {
             "message": "Registration successful. OTP has been sent to your email.",
@@ -176,7 +181,8 @@ class AuthService:
             }}
         )
 
-        await send_otp_email(email, otp)
+        # Send email asynchronously (don't wait)
+        asyncio.create_task(send_otp_email(email, otp))
 
         return {"message": "OTP sent to your email"}
 
@@ -220,7 +226,8 @@ class AuthService:
             }}
         )
 
-        await send_otp_email(email, otp)
+        # Send email asynchronously (don't wait)
+        asyncio.create_task(send_otp_email(email, otp))
 
         return {"message": "OTP resent to your email"}
 

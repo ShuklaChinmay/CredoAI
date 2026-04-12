@@ -72,25 +72,3 @@ def reset_password(body: ResetPasswordRequest):
 @router.post("/resend-otp")
 async def resend_otp(body: ResendOTPRequest):
     return await auth_service.resend_otp(body.email)
-
-
-@router.get("/test-smtp/{email}")
-async def test_smtp(email: str):
-    """Test SMTP connection - sends a test OTP email"""
-    from services.auth_service import send_otp_email
-    from utils.helpers import generate_otp
-    
-    test_otp = generate_otp()
-    success = await send_otp_email(email, test_otp)
-    
-    if success:
-        return {
-            "status": "success",
-            "message": f"Test email sent to {email}",
-            "test_otp": test_otp
-        }
-    else:
-        return {
-            "status": "failed",
-            "message": f"Failed to send test email to {email}. Check backend logs for details."
-        }

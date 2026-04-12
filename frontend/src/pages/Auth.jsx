@@ -81,20 +81,28 @@ export default function Auth() {
     setLoading(true);
     
     try {
-      await authService.register({
+      const response = await authService.register({
         name: form.name,
         email: form.email,
         password: form.password,
         mobile: form.mobile,
       });
 
+      console.log("✅ Registration successful:", response.data);
+
       setPendingEmail(form.email);
       setOtpFlow('register');
-      setMode('otp');
+      
+      // Force mode update
+      setTimeout(() => {
+        setMode('otp');
+      }, 100);
 
     } catch (e) {
-      console.error(e);
-      setError(e.response?.data?.detail || "Registration failed");
+      console.error("❌ Registration failed:", e);
+      const errorMsg = e.response?.data?.detail || e.message || "Registration failed";
+      console.error("Error message:", errorMsg);
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
