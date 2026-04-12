@@ -93,9 +93,9 @@ export default function Auth() {
 
       const { email, otp, user_id } = response.data;
 
-      // Send OTP email via frontend
+      // Send OTP email via frontend using registration template
       setLoading(true);
-      const emailResult = await emailService.sendOTP(email, otp, form.name);
+      const emailResult = await emailService.sendRegistrationOTP(email, otp, form.name);
       
       if (emailResult.success) {
         console.log("✅ OTP email sent successfully");
@@ -152,8 +152,8 @@ export default function Auth() {
       const response = await authService.forgotPassword(form.email)
       const { email, otp } = response.data
       
-      // Send OTP email via frontend
-      const emailResult = await emailService.sendOTP(email, otp, 'User')
+      // Send OTP email via frontend using forgot password template
+      const emailResult = await emailService.sendForgotPasswordOTP(email, otp, 'User')
       
       if (emailResult.success) {
         console.log("✅ Forgot password OTP email sent")
@@ -210,8 +210,10 @@ export default function Auth() {
       const response = await authService.resendOtp(pendingEmail)
       const { otp } = response.data
       
-      // Send OTP email via frontend
-      const emailResult = await emailService.sendOTP(pendingEmail, otp, 'User')
+      // Send OTP email via frontend using correct template based on flow
+      const emailResult = otpFlow === 'forgot' 
+        ? await emailService.sendForgotPasswordOTP(pendingEmail, otp, 'User')
+        : await emailService.sendRegistrationOTP(pendingEmail, otp, 'User')
       
       if (emailResult.success) {
         console.log("✅ Resent OTP email successfully")
