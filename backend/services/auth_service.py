@@ -82,7 +82,7 @@ class AuthService:
             raise HTTPException(status_code=400, detail="Email already registered")
 
         otp = generate_otp()
-        print("OTP:", otp)          # For testing purposes, print the OTP to the console. Remove this in production.
+        # print("OTP:", otp)          # For testing purposes, print the OTP to the console. Remove this in production.
         expires = datetime.utcnow() + timedelta(minutes=settings.OTP_EXPIRY_MINUTES)
 
         user_data = {
@@ -98,11 +98,19 @@ class AuthService:
 
         result = users_collection.insert_one(user_data)
 
-        email_sent = send_otp_email(email, otp)           # For testing purposes, we will print the OTP to the console instead of sending an email. In production, this should be removed and the email sending functionality should be used.
-        if not email_sent:
-            raise HTTPException(status_code=500, detail="Failed to send OTP email")
+        # email_sent = send_otp_email(email, otp)           # For testing purposes, we will print the OTP to the console instead of sending an email. In production, this should be removed and the email sending functionality should be used.
+        # if not email_sent:
+        #     raise HTTPException(status_code=500, detail="Failed to send OTP email")
+        # return result
 
-        return result
+
+        # Demo mode: skip email
+        print("OTP:", otp)
+        return {
+            "message": "Registration successful. OTP generated.",
+            "otp": otp,   #  sends the OTP back in the response for testing/demo purposes. Remove this in production.
+            "user_id": str(result.inserted_id)
+        }
 
 
     def verify_otp(self, email: str, otp: str):
