@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import useAuthStore from '../store/useAuthStore'
 import authService from '../services/authService'
@@ -48,15 +48,22 @@ export default function Auth() {
   useEffect(() => {
     if (otpExpireCountdown <= 0 || otpFlow !== 'register') return
     
-    const timer = setTimeout(() => setOtpExpireCountdown(otpExpireCountdown - 1), 1000)
+    console.log(`⏰ Timer running: ${otpExpireCountdown}s remaining, User ID: ${pendingUserId}`)
     
-    // If timer reaches 0, rollback registration
-    if (otpExpireCountdown === 1) {
-      handleOtpTimeout()
-    }
+    const timer = setTimeout(() => setOtpExpireCountdown(otpExpireCountdown - 1), 1000)
     
     return () => clearTimeout(timer)
   }, [otpExpireCountdown, otpFlow])
+
+  // Trigger timeout handler when countdown reaches 0
+  useEffect(() => {
+    if (otpExpireCountdown === 0 || otpFlow !== 'register') return
+    
+    if (otpExpireCountdown <= 1) {
+      console.log("⏰ TIMEOUT TRIGGERED - About to delete user")
+      handleOtpTimeout()
+    }
+  }, [otpExpireCountdown, otpFlow, handleOtpTimeout])
 
   const handleLogin = async () => {
     if (!form.email || !form.password) return setError('Please fill all fields')
@@ -113,6 +120,18 @@ export default function Auth() {
       console.log("✅ Registration successful:", response.data);
 
       const { email, otp, user_id } = response.data;
+      
+      console.log("📌 Extracted from response:")
+      console.log("  - email:", email)
+      console.log("  - otp:", otp)
+      console.log("  - user_id:", user_id)
+
+      if (!user_id) {
+        console.error("❌ CRITICAL: user_id is missing from registration response!")
+        setError("Registration error: User ID not received. Please try again.")
+        setLoading(false)
+        return
+      }
 
       // Send OTP email via frontend using registration template
       setLoading(true);
@@ -120,6 +139,7 @@ export default function Auth() {
       
       if (emailResult.success) {
         console.log("✅ OTP email sent successfully");
+        console.log("🚀 Setting pendingUserId to:", user_id)
         setPendingEmail(email);
         setPendingUserId(user_id);
         setOtpFlow('register');
@@ -248,8 +268,8 @@ export default function Auth() {
       document.getElementById(`otp-${i - 1}`)?.focus()
   }
 
-  const handleOtpTimeout = async () => {
-    console.log("⏰ OTP timeout triggered for registration")
+  const handleOtpTimeout = useCallback(async () => {
+    console.log("⏰ handleOtpTimeout CALLED")
     console.log("Pending User ID:", pendingUserId)
     
     if (!pendingUserId) {
@@ -280,7 +300,7 @@ export default function Auth() {
       setMode('register')
       setForm({ name: '', email: '', password: '', mobile: '', confirmPassword: '' })
     }, 2000)
-  }
+  }, [pendingUserId])
 
   const handleResendOTP = async () => {
     setLoading(true)
@@ -366,9 +386,14 @@ export default function Auth() {
                 Note: Check your mail Inbox and Spam
               </p>
               {otpFlow === 'register' && (
-                <p className="text-xs text-orange-600 mb-4">
-                  ⏱️ Expires in {Math.floor(otpExpireCountdown / 60)}:{String(otpExpireCountdown % 60).padStart(2, '0')}
-                </p>
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+                  <p className="text-sm text-red-700 font-bold text-center">
+                    ⏱️ Auto-Delete Timer: {Math.floor(otpExpireCountdown / 60)}:{String(otpExpireCountdown % 60).padStart(2, '0')}
+                  </p>
+                  <p className="text-xs text-red-600 text-center mt-1">
+                    (Registration data will be deleted if OTP is not verified)
+                  </p>
+                </div>
               )}
               <div className="flex gap-2.5 justify-center mb-6">
                 {otpDigits.map((d, i) => (
