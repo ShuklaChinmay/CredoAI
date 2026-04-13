@@ -29,6 +29,41 @@ export default function Auth() {
   const [form, setForm] = useState({ name: '', email: '', password: '', mobile: '', confirmPassword: '' })
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
 
+  // Define handleOtpTimeout FIRST before any useEffect uses it
+  const handleOtpTimeout = useCallback(async () => {
+    console.log("⏰ handleOtpTimeout CALLED")
+    console.log("Pending User ID:", pendingUserId)
+    
+    if (!pendingUserId) {
+      console.error("❌ No pendingUserId available for deletion")
+      setError('OTP expired. Please register again.')
+      setMode('register')
+      return
+    }
+
+    try {
+      console.log(`🗑️ Calling DELETE endpoint for user: ${pendingUserId}`)
+      const response = await api.delete(`/auth/cancel-registration/${pendingUserId}`)
+      console.log("✅ Delete response:", response.data)
+    } catch (err) {
+      console.error("❌ Error calling delete endpoint:", err)
+      if (err.response?.data?.detail) {
+        console.error("Backend error:", err.response.data.detail)
+      }
+    }
+    
+    setError('⏱️ Registration OTP expired. Your data has been removed. Please register again.')
+    setOtpExpireCountdown(0)
+    setPendingUserId('')
+    setPendingEmail('')
+    setOtpDigits(['', '', '', '', '', ''])
+    
+    setTimeout(() => {
+      setMode('register')
+      setForm({ name: '', email: '', password: '', mobile: '', confirmPassword: '' })
+    }, 2000)
+  }, [pendingUserId])
+
   useEffect(() => {
     setForm({ name: '', email: '', password: '', mobile: '', confirmPassword: '' })
     setError('')
@@ -267,40 +302,6 @@ export default function Auth() {
     if (e.key === 'Backspace' && !otpDigits[i] && i > 0)
       document.getElementById(`otp-${i - 1}`)?.focus()
   }
-
-  const handleOtpTimeout = useCallback(async () => {
-    console.log("⏰ handleOtpTimeout CALLED")
-    console.log("Pending User ID:", pendingUserId)
-    
-    if (!pendingUserId) {
-      console.error("❌ No pendingUserId available for deletion")
-      setError('OTP expired. Please register again.')
-      setMode('register')
-      return
-    }
-
-    try {
-      console.log(`🗑️ Calling DELETE endpoint for user: ${pendingUserId}`)
-      const response = await api.delete(`/auth/cancel-registration/${pendingUserId}`)
-      console.log("✅ Delete response:", response.data)
-    } catch (err) {
-      console.error("❌ Error calling delete endpoint:", err)
-      if (err.response?.data?.detail) {
-        console.error("Backend error:", err.response.data.detail)
-      }
-    }
-    
-    setError('⏱️ Registration OTP expired. Your data has been removed. Please register again.')
-    setOtpExpireCountdown(0)
-    setPendingUserId('')
-    setPendingEmail('')
-    setOtpDigits(['', '', '', '', '', ''])
-    
-    setTimeout(() => {
-      setMode('register')
-      setForm({ name: '', email: '', password: '', mobile: '', confirmPassword: '' })
-    }, 2000)
-  }, [pendingUserId])
 
   const handleResendOTP = async () => {
     setLoading(true)
