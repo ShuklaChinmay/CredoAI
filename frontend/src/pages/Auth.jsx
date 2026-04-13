@@ -182,7 +182,7 @@ export default function Auth() {
         setPendingEmail(email);
         setPendingUserId(user_id);
         setOtpFlow('register');
-        setOtpDigits(otp.split(""));
+        setOtpDigits(['', '', '', '', '', '']); // Keep empty - user must enter manually
         setResendCountdown(120); // 2 minute resend timer
         setOtpExpireCountdown(600); // 10 minutes in seconds
         setMode('otp');
@@ -262,7 +262,7 @@ export default function Auth() {
         console.log("✅ Forgot password OTP email sent")
         setPendingEmail(email)
         setOtpFlow('forgot')
-        setOtpDigits(otp.split(""))
+        setOtpDigits(['', '', '', '', '', '']) // Keep empty - user must enter manually
         setResendCountdown(120) // 2 minutes resend timer
         setMode('otp')
       } else {
