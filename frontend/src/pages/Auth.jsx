@@ -20,7 +20,10 @@ export default function Auth() {
   const [error, setError] = useState('')
   const [pendingEmail, setPendingEmail] = useState('')
   const [pendingOtp, setPendingOtp] = useState('')
+  const [pendingUserId, setPendingUserId] = useState('')
   const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', ''])
+  const [resendCountdown, setResendCountdown] = useState(0)
+  const [otpExpireCountdown, setOtpExpireCountdown] = useState(0)
 
   const [form, setForm] = useState({ name: '', email: '', password: '', mobile: '', confirmPassword: '' })
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
@@ -29,13 +32,30 @@ export default function Auth() {
     setForm({ name: '', email: '', password: '', mobile: '', confirmPassword: '' })
     setError('')
     setOtpDigits(['', '', '', '', '', ''])
+    setResendCountdown(0)
+    setOtpExpireCountdown(0)
   }, [mode])
 
+  // Resend OTP cooldown timer (2 minutes)
   useEffect(() => {
-    setForm({ name: '', email: '', password: '', mobile: '', confirmPassword: '' })
-    setError('')
-    setOtpDigits(['', '', '', '', '', ''])
-  }, [])
+    if (resendCountdown <= 0) return
+    const timer = setTimeout(() => setResendCountdown(resendCountdown - 1), 1000)
+    return () => clearTimeout(timer)
+  }, [resendCountdown])
+
+  // OTP expiration timer (10 minutes) - only for registration
+  useEffect(() => {
+    if (otpExpireCountdown <= 0 || otpFlow !== 'register') return
+    
+    const timer = setTimeout(() => setOtpExpireCountdown(otpExpireCountdown - 1), 1000)
+    
+    // If timer reaches 0, rollback registration
+    if (otpExpireCountdown === 1) {
+      handleOtpTimeout()
+    }
+    
+    return () => clearTimeout(timer)
+  }, [otpExpireCountdown, otpFlow])
 
   const handleLogin = async () => {
     if (!form.email || !form.password) return setError('Please fill all fields')
@@ -100,11 +120,22 @@ export default function Auth() {
       if (emailResult.success) {
         console.log("✅ OTP email sent successfully");
         setPendingEmail(email);
+        setPendingUserId(user_id);
         setOtpFlow('register');
         setOtpDigits(otp.split(""));
+        setResendCountdown(120); // 2 minute resend timer
+        setOtpExpireCountdown(600); // 10 minutes in seconds
         setMode('otp');
       } else {
+        // Delete user if email fails
         setError(`OTP generated but email failed: ${emailResult.message}`);
+        try {
+          await fetch(`${import.meta.env.VITE_API_URL || 'https://credoai-backend.onrender.com'}/auth/cancel-registration/${user_id}`, {
+            method: 'DELETE'
+          })
+        } catch (err) {
+          console.error("Error deleting user after email failure:", err)
+        }
       }
 
     } catch (e) {
@@ -131,6 +162,7 @@ export default function Auth() {
           data.user,
           data.access_token || data.token
         )
+        setOtpExpireCountdown(0) // Stop timer on success
         navigate('/')
       }
       // For forgot password flow
@@ -139,7 +171,12 @@ export default function Auth() {
         setMode('set_password')
       }
     } catch (e) {
-      setError(e.response?.data?.detail || 'Invalid OTP')
+      const errorDetail = e.response?.data?.detail || 'Invalid OTP'
+      if (errorDetail.includes('Invalid OTP') || errorDetail.includes('otp')) {
+        setError('❌ Incorrect OTP. Please try again.')
+      } else {
+        setError(errorDetail)
+      }
     } finally {
       setLoading(false)
     }
@@ -150,7 +187,13 @@ export default function Auth() {
     setLoading(true); setError('')
     try {
       const response = await authService.forgotPassword(form.email)
-      const { email, otp } = response.data
+      const { email, otp, user_found } = response.data
+      
+      if (!user_found) {
+        setError('❌ User not found. Please check your email or register first.')
+        setLoading(false)
+        return
+      }
       
       // Send OTP email via frontend using forgot password template
       const emailResult = await emailService.sendForgotPasswordOTP(email, otp, 'User')
@@ -160,6 +203,7 @@ export default function Auth() {
         setPendingEmail(email)
         setOtpFlow('forgot')
         setOtpDigits(otp.split(""))
+        setResendCountdown(120) // 2 minutes resend timer
         setMode('otp')
       } else {
         setError(`OTP generated but email failed: ${emailResult.message}`)
@@ -203,6 +247,27 @@ export default function Auth() {
       document.getElementById(`otp-${i - 1}`)?.focus()
   }
 
+  const handleOtpTimeout = async () => {
+    console.log("⏰ OTP timeout for registration - deleting user")
+    try {
+      await fetch(`${import.meta.env.VITE_API_URL || 'https://credoai-backend.onrender.com'}/auth/cancel-registration/${pendingUserId}`, {
+        method: 'DELETE'
+      })
+    } catch (err) {
+      console.error("Error deleting user on timeout:", err)
+    }
+    
+    setError('OTP expired. Your registration data has been removed. Please register again.')
+    setOtpExpireCountdown(0)
+    setPendingUserId('')
+    setPendingEmail('')
+    setOtpDigits(['', '', '', '', '', ''])
+    
+    setTimeout(() => {
+      setMode('register')
+    }, 2000)
+  }
+
   const handleResendOTP = async () => {
     setLoading(true)
     setError('')
@@ -218,6 +283,7 @@ export default function Auth() {
       if (emailResult.success) {
         console.log("✅ Resent OTP email successfully")
         setOtpDigits(otp.split(""))
+        setResendCountdown(120) // 2 minutes in seconds
         setError('') 
       } else {
         setError(`OTP regenerated but email failed: ${emailResult.message}`)
@@ -280,9 +346,14 @@ export default function Auth() {
               <p className="text-sm text-slate-500 mb-2">
                 Enter the 6-digit OTP sent to <strong>{pendingEmail}</strong>
               </p>
-              <p className="text-sm text-red-600 mb-6 font-semibold">
+              <p className="text-sm text-red-600 mb-2 font-semibold">
                 Note: Check your mail Inbox and Spam
               </p>
+              {otpFlow === 'register' && (
+                <p className="text-xs text-orange-600 mb-4">
+                  ⏱️ Expires in {Math.floor(otpExpireCountdown / 60)}:{String(otpExpireCountdown % 60).padStart(2, '0')}
+                </p>
+              )}
               <div className="flex gap-2.5 justify-center mb-6">
                 {otpDigits.map((d, i) => (
                   <input
@@ -302,8 +373,18 @@ export default function Auth() {
               <Button variant="navy" fullWidth loading={loading} onClick={handleOTP} className="mb-3">
                 Verify OTP
               </Button>
-              <button onClick={handleResendOTP} disabled={loading} className="text-sm text-slate-500 hover:text-blue-600 transition-colors w-full text-center mb-3">
-                Resend OTP
+              <button 
+                onClick={handleResendOTP} 
+                disabled={loading || resendCountdown > 0} 
+                className={`text-sm transition-colors w-full text-center mb-3 ${
+                  resendCountdown > 0 
+                    ? 'text-slate-400 cursor-not-allowed' 
+                    : 'text-slate-500 hover:text-blue-600'
+                }`}
+              >
+                {resendCountdown > 0 
+                  ? `Resend OTP in ${Math.floor(resendCountdown / 60)}:${String(resendCountdown % 60).padStart(2, '0')}` 
+                  : 'Resend OTP'}
               </button>
               <button onClick={() => otpFlow === 'register' ? setMode('register') : setMode('forgot')} className="text-sm text-slate-500 hover:text-blue-600 transition-colors w-full text-center mb-4">
                 ← Back

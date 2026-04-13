@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from pydantic import BaseModel, EmailStr
 
-from services.auth_service import auth_service
+from services.auth_service import auth_service, delete_unverified_user
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -72,3 +72,19 @@ def reset_password(body: ResetPasswordRequest):
 @router.post("/resend-otp")
 async def resend_otp(body: ResendOTPRequest):
     return await auth_service.resend_otp(body.email)
+
+
+@router.delete("/cancel-registration/{user_id}")
+async def cancel_registration(user_id: str):
+    """Cancel registration and delete unverified user (called on OTP timeout)"""
+    success = delete_unverified_user(user_id)
+    if success:
+        return {
+            "status": "success",
+            "message": "Registration cancelled and user data removed"
+        }
+    else:
+        return {
+            "status": "failed",
+            "message": "Could not delete user (may already be verified or deleted)"
+        }

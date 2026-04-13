@@ -119,10 +119,12 @@ class AuthService:
         user = users_collection.find_one({"email": email})
 
         if not user:
+            # Don't reveal if email exists for security, but return false indicator
             return {
                 "message": "If that email exists, an OTP has been sent",
                 "email": email,
-                "otp": None
+                "otp": None,
+                "user_found": False
             }
 
         otp = generate_otp()
@@ -138,7 +140,8 @@ class AuthService:
         return {
             "message": "OTP generated. Check your email.",
             "email": email,
-            "otp": otp
+            "otp": otp,
+            "user_found": True
         }
 
 
@@ -197,6 +200,20 @@ def _serialize(user):
         "role": user["role"],
         "is_verified": user["is_verified"],
     }
+
+
+def delete_unverified_user(user_id: str) -> bool:
+    """Delete unverified user (for rollback after OTP timeout)"""
+    try:
+        from bson import ObjectId
+        result = users_collection.delete_one({"_id": ObjectId(user_id), "is_verified": False})
+        if result.deleted_count > 0:
+            print(f"🗑️  Deleted unverified user: {user_id}")
+            return True
+        return False
+    except Exception as e:
+        print(f"❌ Error deleting user {user_id}: {str(e)}")
+        return False
 
 
 auth_service = AuthService()
