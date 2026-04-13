@@ -77,14 +77,17 @@ async def resend_otp(body: ResendOTPRequest):
 @router.delete("/cancel-registration/{user_id}")
 async def cancel_registration(user_id: str):
     """Cancel registration and delete unverified user (called on OTP timeout)"""
+    print(f"📍 DELETE endpoint called for user_id: {user_id}")
+    
     success = delete_unverified_user(user_id)
+    
     if success:
         return {
             "status": "success",
-            "message": "Registration cancelled and user data removed"
+            "message": "Registration cancelled and user data removed from database"
         }
     else:
         return {
             "status": "failed",
-            "message": "Could not delete user (may already be verified or deleted)"
+            "message": "Could not delete user (may already be verified, deleted, or not found)"
         }

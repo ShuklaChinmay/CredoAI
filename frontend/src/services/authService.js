@@ -48,6 +48,9 @@ const authService = {
       otp,
       new_password,
     }),
+
+  resendOtp: (email) =>
+    api.post("/auth/resend-otp", { email }),
 };
 
 export default authService;

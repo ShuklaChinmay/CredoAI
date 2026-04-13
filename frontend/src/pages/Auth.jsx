@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import useAuthStore from '../store/useAuthStore'
 import authService from '../services/authService'
+import api from '../services/api'
 import emailService from '../services/emailService'
 import Input from '../components/ui/Input'
 import Button from '../components/ui/Button'
@@ -130,11 +131,11 @@ export default function Auth() {
         // Delete user if email fails
         setError(`OTP generated but email failed: ${emailResult.message}`);
         try {
-          await fetch(`${import.meta.env.VITE_API_URL || 'https://credoai-backend.onrender.com'}/auth/cancel-registration/${user_id}`, {
-            method: 'DELETE'
-          })
+          console.log(`🗑️ Email failed, deleting user ${user_id}`)
+          const deleteResponse = await api.delete(`/auth/cancel-registration/${user_id}`)
+          console.log("✅ User deleted after email failure:", deleteResponse.data)
         } catch (err) {
-          console.error("Error deleting user after email failure:", err)
+          console.error("❌ Error deleting user after email failure:", err)
         }
       }
 
@@ -248,16 +249,28 @@ export default function Auth() {
   }
 
   const handleOtpTimeout = async () => {
-    console.log("⏰ OTP timeout for registration - deleting user")
+    console.log("⏰ OTP timeout triggered for registration")
+    console.log("Pending User ID:", pendingUserId)
+    
+    if (!pendingUserId) {
+      console.error("❌ No pendingUserId available for deletion")
+      setError('OTP expired. Please register again.')
+      setMode('register')
+      return
+    }
+
     try {
-      await fetch(`${import.meta.env.VITE_API_URL || 'https://credoai-backend.onrender.com'}/auth/cancel-registration/${pendingUserId}`, {
-        method: 'DELETE'
-      })
+      console.log(`🗑️ Calling DELETE endpoint for user: ${pendingUserId}`)
+      const response = await api.delete(`/auth/cancel-registration/${pendingUserId}`)
+      console.log("✅ Delete response:", response.data)
     } catch (err) {
-      console.error("Error deleting user on timeout:", err)
+      console.error("❌ Error calling delete endpoint:", err)
+      if (err.response?.data?.detail) {
+        console.error("Backend error:", err.response.data.detail)
+      }
     }
     
-    setError('OTP expired. Your registration data has been removed. Please register again.')
+    setError('⏱️ Registration OTP expired. Your data has been removed. Please register again.')
     setOtpExpireCountdown(0)
     setPendingUserId('')
     setPendingEmail('')
@@ -265,6 +278,7 @@ export default function Auth() {
     
     setTimeout(() => {
       setMode('register')
+      setForm({ name: '', email: '', password: '', mobile: '', confirmPassword: '' })
     }, 2000)
   }
 
@@ -370,22 +384,33 @@ export default function Auth() {
                 ))}
               </div>
               {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
-              <Button variant="navy" fullWidth loading={loading} onClick={handleOTP} className="mb-3">
+              <Button variant="navy" fullWidth loading={loading} onClick={handleOTP} className="mb-4">
                 Verify OTP
               </Button>
+              
+              {/* Resend OTP Section with Timer */}
+              {resendCountdown > 0 && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 text-center">
+                  <p className="text-sm text-blue-700 font-medium">
+                    ⏱️ Can resend OTP in {Math.floor(resendCountdown / 60)}:{String(resendCountdown % 60).padStart(2, '0')}
+                  </p>
+                </div>
+              )}
+              
               <button 
                 onClick={handleResendOTP} 
                 disabled={loading || resendCountdown > 0} 
-                className={`text-sm transition-colors w-full text-center mb-3 ${
+                className={`text-sm font-medium transition-all w-full text-center py-2 rounded-lg mb-4 ${
                   resendCountdown > 0 
-                    ? 'text-slate-400 cursor-not-allowed' 
-                    : 'text-slate-500 hover:text-blue-600'
+                    ? 'bg-slate-100 text-slate-400 cursor-not-allowed' 
+                    : 'bg-blue-100 text-blue-600 hover:bg-blue-200 active:bg-blue-300'
                 }`}
               >
                 {resendCountdown > 0 
                   ? `Resend OTP in ${Math.floor(resendCountdown / 60)}:${String(resendCountdown % 60).padStart(2, '0')}` 
-                  : 'Resend OTP'}
+                  : '🔄 Resend OTP'}
               </button>
+              
               <button onClick={() => otpFlow === 'register' ? setMode('register') : setMode('forgot')} className="text-sm text-slate-500 hover:text-blue-600 transition-colors w-full text-center mb-4">
                 ← Back
               </button>

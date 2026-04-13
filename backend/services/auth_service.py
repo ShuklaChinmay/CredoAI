@@ -206,13 +206,36 @@ def delete_unverified_user(user_id: str) -> bool:
     """Delete unverified user (for rollback after OTP timeout)"""
     try:
         from bson import ObjectId
-        result = users_collection.delete_one({"_id": ObjectId(user_id), "is_verified": False})
+        
+        # Convert user_id string to ObjectId
+        obj_id = ObjectId(user_id)
+        
+        # First, find the user to verify they exist and are unverified
+        user = users_collection.find_one({"_id": obj_id})
+        
+        if not user:
+            print(f"⚠️ User not found: {user_id}")
+            return False
+        
+        # Check if user is verified
+        if user.get("is_verified", False):
+            print(f"⚠️ User is already verified: {user_id}")
+            return False
+        
+        # Delete the unverified user
+        result = users_collection.delete_one({"_id": obj_id})
+        
         if result.deleted_count > 0:
-            print(f"🗑️  Deleted unverified user: {user_id}")
+            print(f"🗑️  Successfully deleted unverified user: {user_id}")
             return True
-        return False
+        else:
+            print(f"⚠️ No user deleted for ID: {user_id}")
+            return False
+            
     except Exception as e:
         print(f"❌ Error deleting user {user_id}: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return False
 
 
