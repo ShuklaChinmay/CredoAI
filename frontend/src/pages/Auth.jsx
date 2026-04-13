@@ -65,11 +65,15 @@ export default function Auth() {
   }, [pendingUserId])
 
   useEffect(() => {
-    setForm({ name: '', email: '', password: '', mobile: '', confirmPassword: '' })
-    setError('')
-    setOtpDigits(['', '', '', '', '', ''])
-    setResendCountdown(0)
-    setOtpExpireCountdown(0)
+    // Only reset state when NOT entering OTP mode
+    // OTP timers are managed by their respective handlers
+    if (mode !== 'otp') {
+      setForm({ name: '', email: '', password: '', mobile: '', confirmPassword: '' })
+      setError('')
+      setOtpDigits(['', '', '', '', '', ''])
+      setResendCountdown(0)
+      setOtpExpireCountdown(0)
+    }
   }, [mode])
 
   // Resend OTP cooldown timer (2 minutes)
