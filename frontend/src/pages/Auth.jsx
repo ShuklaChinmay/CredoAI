@@ -296,9 +296,11 @@ export default function Auth() {
       
       if (emailResult.success) {
         console.log("✅ Resent OTP email successfully")
-        setOtpDigits(otp.split(""))
-        setResendCountdown(120) // 2 minutes in seconds
-        setError('') 
+        // DO NOT auto-fill OTP - user must enter it manually
+        // setOtpDigits(otp.split(""))
+        setOtpDigits(['', '', '', '', '', '']) // Clear OTP fields instead
+        setResendCountdown(120) // 2 minutes countdown
+        setError('OTP sent! Check your email and enter it manually.') 
       } else {
         setError(`OTP regenerated but email failed: ${emailResult.message}`)
       }
@@ -388,28 +390,28 @@ export default function Auth() {
                 Verify OTP
               </Button>
               
-              {/* Resend OTP Section with Timer */}
-              {resendCountdown > 0 && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 text-center">
-                  <p className="text-sm text-blue-700 font-medium">
-                    ⏱️ Can resend OTP in {Math.floor(resendCountdown / 60)}:{String(resendCountdown % 60).padStart(2, '0')}
-                  </p>
-                </div>
+              {/* Resend OTP Button with Timer - Blue when disabled, Navy when enabled */}
+              {resendCountdown > 0 ? (
+                <Button 
+                  variant="primary" 
+                  fullWidth 
+                  disabled={true}
+                  onClick={handleResendOTP}
+                  className="mb-4"
+                >
+                  ⏱️ Resend OTP in {Math.floor(resendCountdown / 60)}:{String(resendCountdown % 60).padStart(2, '0')}
+                </Button>
+              ) : (
+                <Button 
+                  variant="navy" 
+                  fullWidth 
+                  loading={loading}
+                  onClick={handleResendOTP}
+                  className="mb-4"
+                >
+                  🔄 Resend OTP
+                </Button>
               )}
-              
-              <button 
-                onClick={handleResendOTP} 
-                disabled={loading || resendCountdown > 0} 
-                className={`text-sm font-medium transition-all w-full text-center py-2 rounded-lg mb-4 ${
-                  resendCountdown > 0 
-                    ? 'bg-slate-100 text-slate-400 cursor-not-allowed' 
-                    : 'bg-blue-100 text-blue-600 hover:bg-blue-200 active:bg-blue-300'
-                }`}
-              >
-                {resendCountdown > 0 
-                  ? `Resend OTP in ${Math.floor(resendCountdown / 60)}:${String(resendCountdown % 60).padStart(2, '0')}` 
-                  : '🔄 Resend OTP'}
-              </button>
               
               <button onClick={() => otpFlow === 'register' ? setMode('register') : setMode('forgot')} className="text-sm text-slate-500 hover:text-blue-600 transition-colors w-full text-center mb-4">
                 ← Back
