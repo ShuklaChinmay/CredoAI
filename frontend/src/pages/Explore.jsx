@@ -222,7 +222,10 @@ export default function Explore() {
                   </div>
 
                   <button
-                    onClick={() => setExpanded(isOpen ? null : loan.id)}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setExpanded(isOpen ? null : loan.id)
+                    }}
                     className="w-full px-5 py-2.5 bg-slate-50 border-t border-slate-100 text-xs font-medium text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors flex items-center justify-center gap-1.5"
                   >
                     {isOpen ? '▲ Show less' : '▾ View Features & Documents'}
@@ -296,7 +299,10 @@ export default function Explore() {
                         <Button 
                           variant="primary" 
                           fullWidth 
-                          onClick={() => handleApply(loan)}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleApply(loan)
+                          }}
                           disabled={applying === loan.id}
                         >
                           {applying === loan.id ? '⏳ Applying...' : `✓ Apply for ${loan.name}`}
@@ -304,7 +310,10 @@ export default function Explore() {
                         <Button 
                           variant="secondary" 
                           fullWidth 
-                          onClick={() => navigate('/chat', { state: { selectedLoan: loan } })}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            navigate('/chat', { state: { selectedLoan: loan } })
+                          }}
                         >
                           💬 Ask AI →
                         </Button>
