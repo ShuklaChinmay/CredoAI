@@ -185,11 +185,14 @@ export default function Explore() {
 
         {!loading && loans.length > 0 && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            {loans.map((loan) => {
-              const isOpen = expanded === loan.id
+            {loans.map((loan, index) => {
+              // Use a unique identifier: prefer id, then product_code, then index
+              const loanId = loan.id || loan.product_id || loan.product_code || `loan-${index}`
+              const isOpen = expanded === loanId
               const tenure = `${loan.min_tenure_months}–${loan.max_tenure_months} mo`
+              console.log(`[${index}] Loan: ${loan.name} | loanId: ${loanId} | expanded: ${expanded} | isOpen: ${isOpen}`)
               return (
-                <Card key={loan.id} className="p-0 overflow-hidden">
+                <Card key={loanId} className="p-0 overflow-hidden">
                   {/* Main content */}
                   <div className="p-5">
                     <div className="flex items-start gap-4 mb-3">
@@ -224,7 +227,8 @@ export default function Explore() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
-                      setExpanded(isOpen ? null : loan.id)
+                      console.log(`Button clicked! Current expanded: ${expanded}, loanId: ${loanId}, will set to: ${isOpen ? 'null' : loanId}`)
+                      setExpanded(isOpen ? null : loanId)
                     }}
                     className="w-full px-5 py-2.5 bg-slate-50 border-t border-slate-100 text-xs font-medium text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors flex items-center justify-center gap-1.5"
                   >
