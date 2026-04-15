@@ -200,6 +200,12 @@ export default function PaymentModal({ onPaymentSuccess }) {
                 type="text"
                 value={utr}
                 onChange={(e) => setUtr(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !submitting && utr.trim()) {
+                    e.preventDefault()
+                    handleConfirmPayment()
+                  }
+                }}
                 placeholder="e.g. 412345678901"
                 className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 mb-3"
                 autoFocus

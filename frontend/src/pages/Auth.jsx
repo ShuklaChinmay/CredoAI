@@ -523,8 +523,8 @@ export default function Auth() {
               <h3 className="font-head text-2xl font-bold text-slate-900 mb-1">Welcome back</h3>
               <p className="text-sm text-slate-500 mb-6">Sign in to continue to CredoAI</p>
               <div className="space-y-4 mb-2">
-                <Input label="Email" type="email" placeholder="your@example.com" value={form.email} onChange={set('email')} required autoComplete="off" />
-                <Input label="Password" type="password" placeholder="••••••••" value={form.password} onChange={set('password')} required autoComplete="off" />
+                <Input label="Email" type="email" placeholder="your@example.com" value={form.email} onChange={set('email')} onEnter={handleLogin} required autoComplete="off" />
+                <Input label="Password" type="password" placeholder="••••••••" value={form.password} onChange={set('password')} onEnter={handleLogin} required autoComplete="off" />
               </div>
               <div className="text-right mb-4">
                 <button onClick={() => setMode('forgot')} className="text-xs text-blue-600 hover:underline">
@@ -558,10 +558,10 @@ export default function Auth() {
               <h3 className="font-head text-2xl font-bold text-slate-900 mb-1">Create account</h3>
               <p className="text-sm text-slate-500 mb-6">Start your loan journey today</p>
               <div className="space-y-4 mb-5">
-                <Input label="Full Name" placeholder="Your Name" value={form.name} onChange={set('name')} required autoComplete="name" />
-                <Input label="Email" type="email" placeholder="your@example.com" value={form.email} onChange={set('email')} required autoComplete="username" />
-                <Input label="Password" type="password" placeholder="Min 8 characters" value={form.password} onChange={set('password')} required autoComplete="new-password" />
-                <Input label="Mobile (optional)" placeholder="+91 98765 43210" value={form.mobile} onChange={set('mobile')} autoComplete="tel" />
+                <Input label="Full Name" placeholder="Your Name" value={form.name} onChange={set('name')} onEnter={handleRegister} required autoComplete="name" />
+                <Input label="Email" type="email" placeholder="your@example.com" value={form.email} onChange={set('email')} onEnter={handleRegister} required autoComplete="username" />
+                <Input label="Password" type="password" placeholder="Min 8 characters" value={form.password} onChange={set('password')} onEnter={handleRegister} required autoComplete="new-password" />
+                <Input label="Mobile (optional)" placeholder="+91 98765 43210" value={form.mobile} onChange={set('mobile')} onEnter={handleRegister} autoComplete="tel" />
               </div>
               {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
               <Button variant="navy" fullWidth loading={loading} onClick={handleRegister} className="mb-4">

@@ -46,5 +46,5 @@ export default function Button({
       ) : null}
       {children}
     </button>
-  )
+    )
 }

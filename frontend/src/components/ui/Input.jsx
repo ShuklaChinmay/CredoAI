@@ -8,11 +8,19 @@ export default function Input({
   inputClassName = '',
   required,
   type = 'text',
+  onEnter,
   ...props
 }) {
   const [showPassword, setShowPassword] = useState(false)
   const isPasswordField = type === 'password'
   const inputType = isPasswordField && showPassword ? 'text' : type
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && onEnter && type !== 'textarea') {
+      e.preventDefault()
+      onEnter()
+    }
+  }
 
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
@@ -35,6 +43,7 @@ export default function Input({
             error ? 'border-red-400 focus:border-red-400 focus:ring-red-400/20' : '',
             inputClassName,
           ].join(' ')}
+          onKeyDown={handleKeyDown}
           {...props}
         />
         {isPasswordField && (
